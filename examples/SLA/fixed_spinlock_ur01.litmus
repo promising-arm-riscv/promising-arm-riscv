@@ -1,0 +1,40 @@
+AArch64 fixed_spinlock_ur1
+{
+    uint32_t lock = 0; uint64_t obj = 0; uint64_t ptr = obj;
+    0:X0 = lock; 0:X10 = ptr; 0:X11 = obj;
+    1:X0 = lock; 1:X10 = ptr;
+}
+        P0                     |         P1                       ;
+
+(* ptr = 0; smp_mb();       *)   (* spin_lock(&lock);          *)
+MOV X1, #0                     | enq:                             ;
+STR X1, [X10]                  |     LDAXR   W1, [X0]             ;
+DMB SY                         |     ADD     W2, W1, #16, LSL #12 ;
+                               |     STXR    W3, W2, [X0]         ;
+(* spin_unlock_wait(&lock); *) |     CBNZ    W3, end              ;
+    DMB ISH                    |     EOR     W2, W1, W1, ROR #16  ;
+    LDRH W1, [X0]              |     CBZ     W2, outl             ;
+    LSL W1, W1, #16            | spinl:                           ;
+reload:                        |     LDAXRH  W3, [X0]             ;
+    LDAXR W2, [X0]             |     EOR     W2, W3, W1, LSR #16  ;
+    EOR W3, W2, W2, ROR #16    |     CBNZ    W2, end              ;
+    CBZ W3, free               | outl:                            ;
+    EOR W3, W1, W2, LSL #16    |                                  ;
+    CBZ W3, (* reload *) end   | (* if (ptr) BUG_ON( *ptr );   *) ;
+    B outu                     |     LDR     X0, [X10]            ;
+free:                          |     MOV     X1, #0               ;
+    STXR W3, W2, [X0]          |     CBZ     X0, end              ;
+    CBNZ W3, (* reload *) end  |     LDR     X1, [X0]             ;
+outu:                          |                                  ;
+                               | end:                             ;
+(* smp_mb(); obj = 1;       *) |                                  ;
+DMB SY                         |                                  ;
+MOV X0, #1                     |                                  ;
+STR X0, [X11]                  |                                  ;
+                               |                                  ;
+                               |                                  ;
+                               |                                  ;
+                               |                                  ;
+end:                           |                                  ;
+
+~exists (1:X1=1)

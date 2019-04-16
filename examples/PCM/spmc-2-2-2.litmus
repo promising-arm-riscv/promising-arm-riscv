@@ -1,0 +1,168 @@
+AArch64 spmc
+{
+    int64_t queue_struct[4];
+
+    int64_t t0_res = 0; 
+    int64_t t1_res = 0; 
+    int64_t t2_res = 0; 
+
+    int64_t stack_t0[16];
+    0:X0 = 2 (*N*);
+    0:X1 = 2 (*X*);
+    0:X2 = queue_struct;  
+    0:X3 = t0_res;
+    0:X30 = stack_t0;  
+
+    int64_t stack_t1[16];
+    1:X0 = 2 (*N*);
+    1:X1 = 2 (*X*);
+    1:X2 = queue_struct;  
+    1:X3 = t1_res;
+    1:X30 = stack_t1;  
+
+    int64_t stack_t2[16];
+    2:X0 = 2 (*N*);
+    2:X1 = 2 (*X*);
+    2:X2 = queue_struct;  
+    2:X3 = t2_res;
+    2:X30 = stack_t2;
+}
+
+P0 | P1 | P2;
+
+ ADD X30, X30, #64 ||;
+ MOV SP, X30 ||;
+ MOV X30, #0 ||;
+   CMP X1, #0 ||;
+   B.LE L5 ||;
+   ADD X9, X2, #8 ||;
+   MOV X7, #0 ||;
+   MOV X8, #0 ||;
+   MOV X6, #1 ||;
+ L4: ||;
+   LDR X5, [X9] ||;
+   LDAR X4, [X2] ||;
+   ADD X4, X4, X0 ||;
+   ADD X10, X5, #1 ||;
+   CMP X5, X4 ||;
+   B.GE L3 ||;
+   SDIV X4, X5, X0 ||;
+   MSUB X4, X4, X0, X5 ||;
+   ADD X4, X4, #2 ||;
+   STR X6, [X2, X4, LSL #3] ||;
+   STLR X10, [X9] ||;
+   ADD X8, X8, X6 ||;
+   LSL X6, X6, #1 ||;
+ L3: ||;
+   ADD X7, X7, #1 ||;
+   CMP X1, X7 ||;
+   B.NE L4 ||;
+ L2: ||;
+   STR X8, [X3] ||;
+   B T0_END ||;
+ L5: ||;
+   MOV X8, #0 ||;
+   B L2 ||;
+ T0_DEAD: ||;
+ MOV X30, #1 ||;
+ T0_END: ||;
+| ADD X30, X30, #64 |;
+| MOV SP, X30 |;
+| MOV X30, #0 |;
+|   CMP X1, #0 |;
+|   B.LE L15 |;
+|   SUB SP, SP, #16 |;
+|   ADD X10, X2, #8 |;
+|   MOV X7, #0 |;
+|   MOV X6, #0 |;
+| L13: |;
+|   LDAR X5, [X10] |;
+|   LDAR X4, [X2] |;
+|   CMP X5, X4 |;
+|   STR X4, [SP, #8] |;
+|   ADD X8, X4, #1 |;
+|   B.LE L14 |;
+|   SDIV X5, X4, X0 |;
+|   MOV X9, X4 |;
+|   MSUB X4, X5, X0, X4 |;
+|   ADD X4, X4, #2 |;
+|   LDR X4, [X2, X4, LSL #3] |;
+| L17: |;
+|   LDXR X5, [X2] |;
+|   CMP X5, X9 |;
+|   B.NE L18 |;
+|   STLXR W11, X8, [X2] |;
+|   CBNZ W11, T1_DEAD |;
+| L18: |;
+|   B.EQ L11 |;
+|   STR X5, [SP, #8] |;
+| L14: |;
+|   ADD X6, X6, #1 |;
+|   CMP X1, X6 |;
+|   B.NE L13 |;
+|   STR X7, [X3] |;
+|   ADD SP, SP, #16 |;
+|   B T1_END |;
+| L11: |;
+|   ADD X7, X7, X4 |;
+|   B L14 |;
+| L15: |;
+|   MOV X7, #0 |;
+|   STR X7, [X3] |;
+|   B T1_END |;
+| T1_DEAD: |;
+| MOV X30, #1 |;
+| T1_END: |;
+|| ADD X30, X30, #64 ;
+|| MOV SP, X30 ;
+|| MOV X30, #0 ;
+||   CMP X1, #0 ;
+||   B.LE L31 ;
+||   SUB SP, SP, #16 ;
+||   ADD X10, X2, #8 ;
+||   MOV X6, #0 ;
+||   MOV X7, #0 ;
+|| L29: ;
+||   LDAR X5, [X10] ;
+||   LDAR X4, [X2] ;
+||   CMP X5, X4 ;
+||   STR X4, [SP, #8] ;
+||   ADD X8, X4, #1 ;
+||   B.LE L30 ;
+||   SDIV X5, X4, X0 ;
+||   MOV X9, X4 ;
+||   MSUB X4, X5, X0, X4 ;
+||   ADD X4, X4, #2 ;
+||   LDR X4, [X2, X4, LSL #3] ;
+|| L33: ;
+||   LDXR X5, [X2] ;
+||   CMP X5, X9 ;
+||   B.NE L34 ;
+||   STLXR W11, X8, [X2] ;
+||   CBNZ W11, T2_DEAD ;
+|| L34: ;
+||   B.EQ L27 ;
+||   STR X5, [SP, #8] ;
+|| L30: ;
+||   ADD X6, X6, #1 ;
+||   CMP X1, X6 ;
+||   B.NE L29 ;
+||   STR X7, [X3] ;
+||   ADD SP, SP, #16 ;
+||   B T2_END ;
+|| L27: ;
+||   ADD X7, X7, X4 ;
+||   B L30 ;
+|| L31: ;
+||   MOV X7, #0 ;
+||   STR X7, [X3] ;
+||   B T2_END ;
+|| T2_DEAD: ;
+|| MOV X30, #1 ;
+|| T2_END: ;
+exists (
+0:X30=0 /\
+1:X30=0 /\
+2:X30=0 /\
+t0_res = 0 /\ t1_res = 0 /\ t2_res = 0 /\ queue_struct = 0
+)

@@ -1,0 +1,152 @@
+AArch64 bounded_ticket_lock
+{
+    int64_t btlock_struct[2];
+    int64_t data = 0;
+
+    int64_t t0_stack[16];
+    int64_t t0_ticket = 0;
+    int64_t t0_data = 0;
+    0:X0 = btlock_struct;  
+    0:X1 = 2 (*N*);
+    0:X2 = data;
+    0:X3 = t0_ticket;
+    0:X4 = t0_data;
+    0:X30 = t0_stack;
+
+    int64_t t1_stack[16];
+    int64_t t1_ticket = 0;
+    int64_t t1_data = 0;
+    1:X0 = btlock_struct;  
+    1:X1 = 2 (*N*);
+    1:X2 = data;
+    1:X3 = t1_ticket;
+    1:X4 = t1_data;
+    1:X30 = t1_stack;
+
+    int64_t t2_stack[16];
+    int64_t t2_ticket = 0;
+    int64_t t2_data = 0;
+    2:X0 = btlock_struct;  
+    2:X1 = 2 (*N*);
+    2:X2 = data;
+    2:X3 = t2_ticket;
+    2:X4 = t2_data;
+    2:X30 = t2_stack;
+}
+
+P0 | P1 | P2;
+
+   ADD X5, X0, #8 ||;
+ L10: ||;
+   LDAXR X7, [X5] ||;
+   ADD X6, X7, #1 ||;
+   STXR W8, X6, [X5] ||;
+   CBNZ W8, T0_DEAD ||;
+   CBZ X1, L2 ||;
+   MOV X5, #0 ||;
+   B L6 ||;
+ L3: ||;
+   CMP X1, X5 ||;
+   B.EQ L2 ||;
+ L6: ||;
+   LDAR X6, [X0] ||;
+   CMP X7, X6 ||;
+   ADD X5, X5, #1 ||;
+   B.NE L3 ||;
+   ADD X7, X7, #1 ||;
+   STR X7, [X3] ||;
+   CBZ X7, L12 ||;
+   LDR X1, [X2] ||;
+   ADD X1, X1, #42 ||;
+   STR X1, [X2] ||;
+   STR X1, [X4] ||;
+   LDR X1, [X0] ||;
+   ADD X1, X1, #1 ||;
+   STLR X1, [X0] ||;
+   B T0_END ||;
+ L2: ||;
+   STR XZR, [X3] ||;
+   B T0_END ||;
+ L12: ||;
+   B T0_END ||;
+ T0_DEAD: ||;
+ MOV X30, #1 ||;
+ T0_END: ||;
+|   ADD X5, X0, #8 |;
+| L22: |;
+|   LDAXR X7, [X5] |;
+|   ADD X6, X7, #1 |;
+|   STXR W8, X6, [X5] |;
+|   CBNZ W8, T1_DEAD |;
+|   CBZ X1, L14 |;
+|   MOV X5, #0 |;
+|   B L18 |;
+| L15: |;
+|   CMP X1, X5 |;
+|   B.EQ L14 |;
+| L18: |;
+|   LDAR X6, [X0] |;
+|   CMP X7, X6 |;
+|   ADD X5, X5, #1 |;
+|   B.NE L15 |;
+|   ADD X7, X7, #1 |;
+|   STR X7, [X3] |;
+|   CBZ X7, L23 |;
+|   LDR X1, [X2] |;
+|   ADD X1, X1, #42 |;
+|   STR X1, [X2] |;
+|   STR X1, [X4] |;
+|   LDR X1, [X0] |;
+|   ADD X1, X1, #1 |;
+|   STLR X1, [X0] |;
+|   B T1_END |;
+| L14: |;
+|   STR XZR, [X3] |;
+|   B T1_END |;
+| L23: |;
+|   B T1_END |;
+| T1_DEAD: |;
+| MOV X30, #1 |;
+| T1_END: |;
+||   ADD X5, X0, #8 ;
+|| L33: ;
+||   LDAXR X7, [X5] ;
+||   ADD X6, X7, #1 ;
+||   STXR W8, X6, [X5] ;
+||   CBNZ W8, T2_DEAD ;
+||   CBZ X1, L25 ;
+||   MOV X5, #0 ;
+||   B L29 ;
+|| L26: ;
+||   CMP X1, X5 ;
+||   B.EQ L25 ;
+|| L29: ;
+||   LDAR X6, [X0] ;
+||   CMP X7, X6 ;
+||   ADD X5, X5, #1 ;
+||   B.NE L26 ;
+||   ADD X7, X7, #1 ;
+||   STR X7, [X3] ;
+||   CBZ X7, L34 ;
+||   LDR X1, [X2] ;
+||   ADD X1, X1, #42 ;
+||   STR X1, [X2] ;
+||   STR X1, [X4] ;
+||   LDR X1, [X0] ;
+||   ADD X1, X1, #1 ;
+||   STLR X1, [X0] ;
+||   B T2_END ;
+|| L25: ;
+||   STR XZR, [X3] ;
+||   B T2_END ;
+|| L34: ;
+||   B T2_END ;
+|| T2_DEAD: ;
+|| MOV X30, #1 ;
+|| T2_END: ;
+exists (
+0:X30=0 /\
+1:X30=0 /\
+2:X30=0 /\
+t0_ticket = 0 /\ t0_data = 0 /\ t1_ticket = 0 /\ t1_data = 0 /\ t2_ticket = 0 /\ t2_data = 0 /\ data = 0 /\ btlock_struct = 0
+)

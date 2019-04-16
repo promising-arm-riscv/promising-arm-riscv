@@ -1,0 +1,118 @@
+AArch64 spinlock
+{
+    int64_t spinlock_struct[1];
+    int64_t data = 0;
+
+    int64_t t0_stack[16];
+    0:X0 = spinlock_struct;
+    0:X1 = 2 (*X*);
+    0:X2 = data;
+    0:X30 = t0_stack;
+
+    int64_t t1_stack[16];
+    1:X0 = spinlock_struct;
+    1:X1 = 2 (*X*);
+    1:X2 = data;
+    1:X30 = t1_stack;
+
+    int64_t t2_stack[16];
+    2:X0 = spinlock_struct;
+    2:X1 = 0 (*X*);
+    2:X2 = data;
+    2:X30 = t2_stack;
+}
+
+P0 | P1 | P2;
+
+   CBZ X1, L14 ||;
+   MOV X3, #0 ||;
+   MOV X5, #1 ||;
+ L7: ||;
+   MOV X4, #0 ||;
+ L11: ||;
+   LDAXR X6, [X0] ||;
+   CMP X6, X4 ||;
+   B.NE L12 ||;
+   STXR W7, X5, [X0] ||;
+   CBNZ W7, T0_DEAD ||;
+ L12: ||;
+   ADD X3, X3, #1 ||;
+   B.NE L18 ||;
+   LDR X1, [X2] ||;
+   ADD X1, X1, #42 ||;
+   STR X1, [X2] ||;
+   STLR XZR, [X0] ||;
+   B T0_END ||;
+ L18: ||;
+   CMP X1, X3 ||;
+   B.NE L7 ||;
+   B T0_END ||;
+ L14: ||;
+   B T0_END ||;
+ T0_DEAD: ||;
+ MOV X30, #1 ||;
+ T0_END: ||;
+|   CBZ X1, L32 |;
+|   MOV X3, #0 |;
+|   MOV X5, #1 |;
+| L25: |;
+|   MOV X4, #0 |;
+| L29: |;
+|   LDAXR X6, [X0] |;
+|   CMP X6, X4 |;
+|   B.NE L30 |;
+|   STXR W7, X5, [X0] |;
+|   CBNZ W7, T1_DEAD |;
+| L30: |;
+|   ADD X3, X3, #1 |;
+|   B.NE L35 |;
+|   LDR X1, [X2] |;
+|   ADD X1, X1, #42 |;
+|   STR X1, [X2] |;
+|   STLR XZR, [X0] |;
+|   B T1_END |;
+| L35: |;
+|   CMP X1, X3 |;
+|   B.NE L25 |;
+|   B T1_END |;
+| L32: |;
+|   B T1_END |;
+| T1_DEAD: |;
+| MOV X30, #1 |;
+| T1_END: |;
+|| ADD X30, X30, #64 ;
+|| MOV X30, #0 ;
+||   CBZ X1, L49 ;
+||   MOV X3, #0 ;
+||   MOV X5, #1 ;
+|| L42: ;
+||   MOV X4, #0 ;
+|| L46: ;
+||   LDAXR X6, [X0] ;
+||   CMP X6, X4 ;
+||   B.NE L47 ;
+||   STXR W7, X5, [X0] ;
+||   CBNZ W7, T2_DEAD ;
+|| L47: ;
+||   ADD X3, X3, #1 ;
+||   B.NE L52 ;
+||   LDR X1, [X2] ;
+||   ADD X1, X1, #42 ;
+||   STR X1, [X2] ;
+||   STLR XZR, [X0] ;
+||   B T2_END ;
+|| L52: ;
+||   CMP X1, X3 ;
+||   B.NE L42 ;
+||   B T2_END ;
+|| L49: ;
+||   B T2_END ;
+|| T2_DEAD: ;
+|| MOV X30, #1 ;
+|| T2_END: ;
+exists (
+0:X30=0 /\
+1:X30=0 /\
+2:X30=0 /\
+data = 0 /\ spinlock_struct = 0
+)

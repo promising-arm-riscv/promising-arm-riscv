@@ -1,0 +1,62 @@
+AArch64 fixed_spinlock_ur3
+{
+    uint32_t lock = 0; uint64_t obj = 0; uint64_t ptr = obj;
+    0:X0 = lock; 0:X10 = ptr; 0:X11 = obj;
+    1:X0 = lock; 1:X10 = ptr;
+}
+        P0                      |         P1                       ;
+                                | enq:                             ;
+(* ptr = 0; smp_mb();       *)  |     LDAXR   W1, [X0]             ;
+MOV X1, #0                      |     ADD     W2, W1, #16, LSL #12 ;
+STR X1, [X10]                   |     STXR    W3, W2, [X0]         ;
+DMB SY                          |     CBZ    W3, enqed             ;
+                                |     LDAXR   W1, [X0]             ;
+(* spin_unlock_wait(&lock); *)  |     ADD     W2, W1, #16, LSL #12 ;
+    DMB ISH                     |     STXR    W3, W2, [X0]         ;
+    LDRH W1, [X0]               |     CBZ    W3, enqed             ;
+    LSL W1, W1, #16             |     LDAXR   W1, [X0]             ;
+reload:                         |     ADD     W2, W1, #16, LSL #12 ;
+    LDAXR W2, [X0]              |     STXR    W3, W2, [X0]         ;
+    EOR W3, W2, W2, ROR #16     |     CBNZ    W3, end              ;
+    CBZ W3, free                | enqed:                           ;
+    EOR W3, W1, W2, LSL #16     |     EOR     W2, W1, W1, ROR #16  ;
+    CBZ W3, reload2             |     CBZ     W2, outl             ;
+    B outu                      | spinl:                           ;
+free:                           |     LDAXRH  W3, [X0]             ;
+    STXR W3, W2, [X0]           |     EOR     W2, W3, W1, LSR #16  ;
+    CBNZ W3, reload2            |     CBZ    W2, outl              ;
+    B outu                      |     LDAXRH  W3, [X0]             ;
+reload2:                        |     EOR     W2, W3, W1, LSR #16  ; 
+    LDAXR W2, [X0]              |     CBZ    W2, outl              ;
+    EOR W3, W2, W2, ROR #16     |     LDAXRH  W3, [X0]             ;
+    CBZ W3, free2               |     EOR     W2, W3, W1, LSR #16  ;
+    EOR W3, W1, W2, LSL #16     |     CBNZ    W2, end              ;
+    CBZ W3, reload3             | outl:                            ;
+    B outu                      |                                  ;
+free2:                          | (* if (ptr) BUG_ON( *ptr );   *) ; 
+    STXR W3, W2, [X0]           |     LDR     X0, [X10]            ;
+    CBNZ W3, reload3            |     MOV     X1, #0               ;
+    B outu                      |     CBZ     X0, end              ;
+reload3:                        |     LDR     X1, [X0]             ; 
+    LDAXR W2, [X0]              |                                  ;
+    EOR W3, W2, W2, ROR #16     | end:                             ;
+    CBZ W3, free3               |                                  ;
+    EOR W3, W1, W2, LSL #16     |                                  ;
+    CBZ W3, (* reload *) end    |                                  ;
+    B outu                      |                                  ;
+free3:                          |                                  ;
+    STXR W3, W2, [X0]           |                                  ;
+    CBNZ W3, (* reload *) end   |                                  ;
+outu:                           |                                  ;
+                                |                                  ;
+(* smp_mb(); obj = 1;       *)  |                                  ;
+DMB SY                          |                                  ;
+MOV X0, #1                      |                                  ;
+STR X0, [X11]                   |                                  ;
+                                |                                  ;
+                                |                                  ;
+                                |                                  ;
+                                |                                  ;
+end:                            |                                  ;
+
+~exists (1:X1=1)

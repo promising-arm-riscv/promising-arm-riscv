@@ -1,0 +1,116 @@
+AArch64 spinlock_rust
+{
+    int64_t spinlock_struct[1];
+    int64_t data = 0;
+
+    int64_t t0_stack[16];
+    0:X0 = spinlock_struct;
+    0:X1 = 1 (*X*);
+    0:X2 = data;
+    0:X30 = t0_stack;
+
+    int64_t t1_stack[16];
+    1:X0 = spinlock_struct;
+    1:X1 = 1 (*X*);
+    1:X2 = data;
+    1:X30 = t1_stack;
+
+    int64_t t2_stack[16];
+    2:X0 = spinlock_struct;
+    2:X1 = 1 (*X*);
+    2:X2 = data;
+    2:X30 = t2_stack;
+}
+
+P0 | P1 | P2;
+
+ ADD X30, X30, #64 ||;
+ MOV SP, X30 ||;
+ MOV X30, #0 ||;
+   MOV X8, XZR ||;
+   ORR W9, WZR, #0X1 ||;
+   CMP X8, X1 ||;
+   B.LT LBB0_2 ||;
+   B LBB0_6 ||;
+ LBB0_1: ||;
+   CLREX ||;
+   CMP X8, X1 ||;
+   B.GE LBB0_6 ||;
+ LBB0_2: ||;
+   ADD X8, X8, #1 ||;
+ LBB0_3: ||;
+   LDAXR X10, [X0] ||;
+   CBNZ X10, LBB0_1 ||;
+   STXR W10, X9, [X0] ||;
+   CBNZ W10, T0_DEAD ||;
+   LDR X8, [X2] ||;
+   ADD X8, X8, #42 ||;
+   STR X8, [X2] ||;
+   STLR XZR, [X0] ||;
+ LBB0_6: ||;
+   B T0_END ||;
+ T0_DEAD: ||;
+ MOV X30, #1 ||;
+ T0_END: ||;
+| ADD X30, X30, #64 |;
+| MOV SP, X30 |;
+| MOV X30, #0 |;
+|   MOV X8, XZR |;
+|   ORR W9, WZR, #0X1 |;
+|   CMP X8, X1 |;
+|   B.LT LBB0_2 |;
+|   B LBB0_6 |;
+| LBB0_1: |;
+|   CLREX |;
+|   CMP X8, X1 |;
+|   B.GE LBB0_6 |;
+| LBB0_2: |;
+|   ADD X8, X8, #1 |;
+| LBB0_3: |;
+|   LDAXR X10, [X0] |;
+|   CBNZ X10, LBB0_1 |;
+|   STXR W10, X9, [X0] |;
+|   CBNZ W10, T1_DEAD |;
+|   LDR X8, [X2] |;
+|   ADD X8, X8, #42 |;
+|   STR X8, [X2] |;
+|   STLR XZR, [X0] |;
+| LBB0_6: |;
+|   B T1_END |;
+| T1_DEAD: |;
+| MOV X30, #1 |;
+| T1_END: |;
+|| ADD X30, X30, #64 ;
+|| MOV SP, X30 ;
+|| MOV X30, #0 ;
+||   MOV X8, XZR ;
+||   ORR W9, WZR, #0X1 ;
+||   CMP X8, X1 ;
+||   B.LT LBB0_2 ;
+||   B LBB0_6 ;
+|| LBB0_1: ;
+||   CLREX ;
+||   CMP X8, X1 ;
+||   B.GE LBB0_6 ;
+|| LBB0_2: ;
+||   ADD X8, X8, #1 ;
+|| LBB0_3: ;
+||   LDAXR X10, [X0] ;
+||   CBNZ X10, LBB0_1 ;
+||   STXR W10, X9, [X0] ;
+||   CBNZ W10, T2_DEAD ;
+||   LDR X8, [X2] ;
+||   ADD X8, X8, #42 ;
+||   STR X8, [X2] ;
+||   STLR XZR, [X0] ;
+|| LBB0_6: ;
+||   B T2_END ;
+|| T2_DEAD: ;
+|| MOV X30, #1 ;
+|| T2_END: ;
+exists (
+0:X30=0 /\
+1:X30=0 /\
+2:X30=0 /\
+data = 0 /\ spinlock_struct = 0
+)
